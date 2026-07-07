@@ -35,6 +35,7 @@ import com.google.mediapipe.examples.gesturerecognizer.GestureRecognizerHelper
 import com.google.mediapipe.examples.gesturerecognizer.MainViewModel
 import com.google.mediapipe.examples.gesturerecognizer.R
 import com.google.mediapipe.examples.gesturerecognizer.databinding.FragmentCameraBinding
+import com.google.mediapipe.examples.gesturerecognizer.dj.AndroidSystemAudioEngine
 import com.google.mediapipe.examples.gesturerecognizer.dj.DjControllerSnapshot
 import com.google.mediapipe.examples.gesturerecognizer.dj.DjGestureController
 import com.google.mediapipe.examples.gesturerecognizer.dj.GestureFrame
@@ -57,7 +58,7 @@ class CameraFragment : Fragment(),
         get() = _fragmentCameraBinding!!
 
     private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
-    private val djGestureController = DjGestureController()
+    private lateinit var djGestureController: DjGestureController
     private val viewModel: MainViewModel by activityViewModels()
     private var defaultNumResults = 1
     private val gestureRecognizerResultAdapter: GestureRecognizerResultsAdapter by lazy {
@@ -131,6 +132,10 @@ class CameraFragment : Fragment(),
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        djGestureController = DjGestureController(
+            audioEngine = AndroidSystemAudioEngine(requireContext())
+        )
+
         with(fragmentCameraBinding.recyclerviewResults) {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = gestureRecognizerResultAdapter
@@ -431,15 +436,20 @@ class CameraFragment : Fragment(),
         val playState = if (snapshot.deckA.isPlaying) "PLAY" else "PAUSE"
         val cueState = if (snapshot.deckA.cueEnabled) "Cue ON" else "Cue OFF"
         val fxState = if (snapshot.deckA.fxEnabled) "FX ON" else "FX OFF"
+        val zoneLabel = listOfNotNull(
+            snapshot.interaction.horizontalZone?.name,
+            snapshot.interaction.verticalZone?.name,
+        ).joinToString("/")
+            .ifEmpty { "-" }
 
         fragmentCameraBinding.djGestureStatus.text =
             "${getString(R.string.label_dj_gesture)}: $gestureLabel"
         fragmentCameraBinding.djActionStatus.text =
             "${getString(R.string.label_dj_action)}: $actionLabel"
         fragmentCameraBinding.djDeckStatus.text =
-            "Deck A: $playState | Vol ${snapshot.deckA.volume}% | Filter ${snapshot.deckA.filter}% | $cueState | $fxState"
+            "Deck A: $playState | Vol ${snapshot.deckA.volume}% | Filter ${snapshot.deckA.filter}% | $cueState | $fxState ${snapshot.deckA.fxMix}%"
         fragmentCameraBinding.djCrossfaderStatus.text =
-            "Crossfader: ${snapshot.crossfader}%"
+            "Crossfader: ${snapshot.crossfader}% | Hold ${snapshot.interaction.holdDurationMs}ms | $zoneLabel | ${snapshot.interaction.movementDirection.name}"
     }
 
     override fun onError(error: String, errorCode: Int) {

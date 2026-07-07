@@ -1,128 +1,45 @@
 package com.google.mediapipe.examples.gesturerecognizer.dj
 
-import kotlin.math.max
-import kotlin.math.min
-
-data class DjDeckState(
-    val isPlaying: Boolean = false,
-    val cueEnabled: Boolean = false,
-    val volume: Int = 75,
-    val filter: Int = 0,
-    val fxEnabled: Boolean = false,
-)
-
-data class DjActionEvent(
-    val command: DjCommand,
-    val label: String,
-    val detail: String,
-    val timestampMs: Long,
-)
-
 data class DjControllerSnapshot(
-    val gesture: GestureFrame,
-    val deckA: DjDeckState,
-    val crossfader: Int,
+    val interaction: GestureInteraction,
+    val engineState: DjEngineState,
     val lastAction: DjActionEvent?,
-)
+) {
+    val gesture: GestureFrame
+        get() = interaction.frame
+
+    val deckA: DjDeckState
+        get() = engineState.deckA
+
+    val crossfader: Int
+        get() = engineState.crossfader
+}
 
 class DjGestureController(
     private val mapper: DjGestureMapper = DjGestureMapper(),
+    private val audioEngine: DjAudioEngine = PreviewDjAudioEngine(),
 ) {
-    private var deckA = DjDeckState()
-    private var crossfader = 50
+    private var engineState = DjEngineState()
     private var lastAction: DjActionEvent? = null
 
     fun handle(frame: GestureFrame): DjControllerSnapshot {
-        mapper.nextCommand(frame)?.let { command ->
-            lastAction = apply(command, frame.timestampMs)
+        val mapperResult = mapper.map(frame)
+        mapperResult.commandEvent?.let { commandEvent ->
+            val engineResult = audioEngine.apply(commandEvent, engineState)
+            engineState = engineResult.state
+            lastAction = engineResult.action
         }
 
         return DjControllerSnapshot(
-            gesture = frame,
-            deckA = deckA,
-            crossfader = crossfader,
+            interaction = mapperResult.interaction,
+            engineState = engineState,
             lastAction = lastAction,
         )
     }
 
     fun reset() {
         mapper.reset()
-        deckA = DjDeckState()
-        crossfader = 50
+        engineState = DjEngineState()
         lastAction = null
-    }
-
-    private fun apply(command: DjCommand, timestampMs: Long): DjActionEvent {
-        return when (command) {
-            DjCommand.PlayPauseDeckA -> {
-                deckA = deckA.copy(isPlaying = !deckA.isPlaying)
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A Play/Pause",
-                    detail = if (deckA.isPlaying) "Deck A playing" else "Deck A paused",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.CueDeckA -> {
-                deckA = deckA.copy(cueEnabled = !deckA.cueEnabled)
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A Cue",
-                    detail = if (deckA.cueEnabled) "Cue enabled" else "Cue disabled",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.VolumeUpDeckA -> {
-                deckA = deckA.copy(volume = min(100, deckA.volume + 5))
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A Volume +",
-                    detail = "Volume ${deckA.volume}%",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.VolumeDownDeckA -> {
-                deckA = deckA.copy(volume = max(0, deckA.volume - 5))
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A Volume -",
-                    detail = "Volume ${deckA.volume}%",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.FilterUpDeckA -> {
-                deckA = deckA.copy(filter = min(100, deckA.filter + 10))
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A Filter +",
-                    detail = "Filter ${deckA.filter}%",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.CrossfaderCenter -> {
-                crossfader = 50
-                DjActionEvent(
-                    command = command,
-                    label = "Crossfader Center",
-                    detail = "Crossfader 50%",
-                    timestampMs = timestampMs,
-                )
-            }
-
-            DjCommand.ToggleFxDeckA -> {
-                deckA = deckA.copy(fxEnabled = !deckA.fxEnabled)
-                DjActionEvent(
-                    command = command,
-                    label = "Deck A FX",
-                    detail = if (deckA.fxEnabled) "FX enabled" else "FX disabled",
-                    timestampMs = timestampMs,
-                )
-            }
-        }
     }
 }

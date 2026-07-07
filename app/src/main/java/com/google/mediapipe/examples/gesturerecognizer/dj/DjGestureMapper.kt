@@ -1,111 +1,92 @@
 package com.google.mediapipe.examples.gesturerecognizer.dj
 
+data class DjGestureMapperResult(
+    val interaction: GestureInteraction,
+    val commandEvent: DjCommandEvent?,
+)
+
 class DjGestureMapper(
-    bindings: List<DjGestureBinding> = defaultBindings(),
+    private val bindings: List<DjGestureBinding> = DjGestureConfiguration.defaultBindings(),
     private val stableFramesRequired: Int = 3,
+    private val interactionEngine: GestureInteractionEngine = GestureInteractionEngine(),
 ) {
-    private val bindingsByGesture = bindings.associateBy { it.gestureName }
-    private val lastRepeatedCommandAt = mutableMapOf<DjCommand, Long>()
-
+    private val consumedOnceBindings = mutableSetOf<String>()
+    private val lastTriggeredAtByBinding = mutableMapOf<String, Long>()
     private var activeGestureName: String? = null
-    private var stableFrameCount = 0
-    private var consumedOnceGestureName: String? = null
 
-    fun nextCommand(frame: GestureFrame): DjCommand? {
-        val binding = bindingsByGesture[frame.name]
-        if (binding == null || frame.score < binding.minScore) {
-            resetActiveGesture()
-            return null
+    fun map(frame: GestureFrame): DjGestureMapperResult {
+        val interaction = interactionEngine.update(frame)
+        if (interaction.frame.name == GestureFrame.NONE) {
+            resetHold()
+            return DjGestureMapperResult(interaction, null)
         }
 
-        if (activeGestureName != frame.name) {
-            activeGestureName = frame.name
-            stableFrameCount = 1
-            consumedOnceGestureName = null
-            return null
+        if (activeGestureName != interaction.frame.name) {
+            activeGestureName = interaction.frame.name
+            consumedOnceBindings.clear()
         }
 
-        stableFrameCount += 1
-        if (stableFrameCount < stableFramesRequired) {
-            return null
+        val commandEvent = bindings.firstNotNullOfOrNull { binding ->
+            if (binding.matches(interaction)) {
+                binding.nextEvent(interaction)
+            } else {
+                null
+            }
         }
 
-        return when (binding.triggerMode) {
-            DjTriggerMode.OncePerHold -> nextOncePerHoldCommand(binding)
-            DjTriggerMode.RepeatWhileHeld -> nextRepeatedCommand(binding, frame.timestampMs)
-        }
+        return DjGestureMapperResult(interaction, commandEvent)
     }
+
+    fun nextCommand(frame: GestureFrame): DjCommand? = map(frame).commandEvent?.command
 
     fun reset() {
-        resetActiveGesture()
-        lastRepeatedCommandAt.clear()
+        interactionEngine.reset()
+        resetHold()
+        lastTriggeredAtByBinding.clear()
     }
 
-    private fun nextOncePerHoldCommand(binding: DjGestureBinding): DjCommand? {
-        if (consumedOnceGestureName == binding.gestureName) {
+    private fun DjGestureBinding.matches(interaction: GestureInteraction): Boolean {
+        if (gestureName != interaction.frame.name) return false
+        if (interaction.stableFrames < stableFramesRequired) return false
+        if (interaction.frame.score < minScore) return false
+        if (interaction.holdDurationMs < minHoldMs) return false
+        if (horizontalZones != null && interaction.horizontalZone !in horizontalZones) return false
+        if (verticalZones != null && interaction.verticalZone !in verticalZones) return false
+        if (movement != null && !movement.matches(interaction.movementDirection)) return false
+        return true
+    }
+
+    private fun MovementDirection.matches(actual: MovementDirection): Boolean {
+        return this == actual || (this == MovementDirection.Any && actual != MovementDirection.Still)
+    }
+
+    private fun DjGestureBinding.nextEvent(interaction: GestureInteraction): DjCommandEvent? {
+        val lastTriggeredAt = lastTriggeredAtByBinding[id]
+        val intervalMs = when (triggerMode) {
+            DjTriggerMode.OncePerHold -> cooldownMs
+            DjTriggerMode.RepeatWhileHeld -> repeatIntervalMs
+            DjTriggerMode.ContinuousWhileHeld -> repeatIntervalMs
+        }
+
+        if (lastTriggeredAt != null && interaction.frame.timestampMs - lastTriggeredAt < intervalMs) {
             return null
         }
 
-        consumedOnceGestureName = binding.gestureName
-        return binding.command
-    }
-
-    private fun nextRepeatedCommand(
-        binding: DjGestureBinding,
-        timestampMs: Long,
-    ): DjCommand? {
-        val lastAt = lastRepeatedCommandAt[binding.command]
-        if (lastAt != null && timestampMs - lastAt < binding.repeatIntervalMs) {
-            return null
+        if (triggerMode == DjTriggerMode.OncePerHold) {
+            if (id in consumedOnceBindings) return null
+            consumedOnceBindings.add(id)
         }
 
-        lastRepeatedCommandAt[binding.command] = timestampMs
-        return binding.command
-    }
-
-    private fun resetActiveGesture() {
-        activeGestureName = null
-        stableFrameCount = 0
-        consumedOnceGestureName = null
-    }
-
-    companion object {
-        fun defaultBindings(): List<DjGestureBinding> = listOf(
-            DjGestureBinding(
-                gestureName = "Open_Palm",
-                command = DjCommand.PlayPauseDeckA,
-                triggerMode = DjTriggerMode.OncePerHold,
-            ),
-            DjGestureBinding(
-                gestureName = "Closed_Fist",
-                command = DjCommand.CueDeckA,
-                triggerMode = DjTriggerMode.OncePerHold,
-            ),
-            DjGestureBinding(
-                gestureName = "Thumb_Up",
-                command = DjCommand.VolumeUpDeckA,
-                triggerMode = DjTriggerMode.RepeatWhileHeld,
-            ),
-            DjGestureBinding(
-                gestureName = "Thumb_Down",
-                command = DjCommand.VolumeDownDeckA,
-                triggerMode = DjTriggerMode.RepeatWhileHeld,
-            ),
-            DjGestureBinding(
-                gestureName = "Pointing_Up",
-                command = DjCommand.FilterUpDeckA,
-                triggerMode = DjTriggerMode.RepeatWhileHeld,
-            ),
-            DjGestureBinding(
-                gestureName = "Victory",
-                command = DjCommand.CrossfaderCenter,
-                triggerMode = DjTriggerMode.OncePerHold,
-            ),
-            DjGestureBinding(
-                gestureName = "ILoveYou",
-                command = DjCommand.ToggleFxDeckA,
-                triggerMode = DjTriggerMode.OncePerHold,
-            ),
+        lastTriggeredAtByBinding[id] = interaction.frame.timestampMs
+        return DjCommandEvent(
+            command = command,
+            bindingId = id,
+            interaction = interaction,
         )
+    }
+
+    private fun resetHold() {
+        activeGestureName = null
+        consumedOnceBindings.clear()
     }
 }

@@ -9,22 +9,40 @@ status panel.
 ## Current Gesture Map
 
 ```text
-Open_Palm   -> Deck A Play/Pause
-Closed_Fist -> Deck A Cue
-Thumb_Up    -> Deck A Volume +
-Thumb_Down  -> Deck A Volume -
-Pointing_Up -> Deck A Filter +
-Victory     -> Crossfader Center
-ILoveYou    -> Deck A FX toggle
+Open_Palm still          -> Deck A Play/Pause
+Open_Palm move left/right -> Crossfader left/right
+Closed_Fist hold         -> Deck A Cue
+Thumb_Up hold            -> Deck A Volume +
+Thumb_Down hold          -> Deck A Volume -
+Pointing_Up move up/down -> Deck A Filter +/-
+Victory still            -> Crossfader Center
+Victory move up/down     -> Deck A FX mix +/-
+ILoveYou                 -> Deck A FX toggle
+ILoveYou bottom hold     -> Reset Deck A controls
 ```
 
 ## Project Structure
 
 ```text
-app/src/main/java/.../dj/       gesture-to-DJ mapping and controller state
+app/src/main/java/.../dj/       gesture interaction, mapping, controller, preview audio engine
 app/src/main/java/.../fragment/ camera/gallery UI
 app/download_tasks.gradle       MediaPipe model download
 ```
+
+The DJ layer is split into:
+
+```text
+GestureInteractionEngine -> stable gesture, hold time, hand zones, movement delta
+DjGestureConfiguration   -> editable gesture + condition + command table
+DjGestureMapper          -> turns interactions into command events with cooldowns
+DjGestureController      -> connects command events to the active engine
+PreviewDjAudioEngine     -> current non-audio state engine, replaceable later
+AndroidSystemAudioEngine -> physical Android media-volume adapter for Volume +/-
+```
+
+`Thumb_Up` and `Thumb_Down` currently update both the Deck A preview state and
+the phone's `STREAM_MUSIC` media volume. Other DJ controls still update preview
+state only until a real deck/effects engine is connected.
 
 ## Build
 
