@@ -13,5 +13,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "DJ Gesture Deck"
+rootProject.name = "Gesture Inspector"
 include ':app'

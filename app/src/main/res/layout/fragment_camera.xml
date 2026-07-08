@@ -32,61 +32,48 @@
         android:layout_height="match_parent" />
 
     <LinearLayout
-        android:id="@+id/dj_status_panel"
+        android:id="@+id/inspector_status_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:layout_margin="@dimen/dj_status_margin"
-        android:background="@drawable/dj_status_background"
+        android:layout_margin="@dimen/inspector_status_margin"
+        android:background="@drawable/inspector_status_background"
         android:elevation="6dp"
-        android:minHeight="@dimen/dj_status_panel_min_height"
+        android:minHeight="@dimen/inspector_status_panel_min_height"
         android:orientation="vertical"
-        android:padding="@dimen/dj_status_padding">
+        android:padding="@dimen/inspector_status_padding">
 
         <TextView
-            android:id="@+id/dj_status_title"
+            android:id="@+id/inspector_status_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_dj_status"
-            android:textColor="@color/dj_status_accent"
-            android:textSize="@dimen/dj_status_title_text_size"
+            android:text="@string/label_inspector_status"
+            android:textColor="@color/inspector_status_accent"
+            android:textSize="@dimen/inspector_status_title_text_size"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/dj_gesture_status"
+            android:id="@+id/inspector_summary_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:textColor="@color/dj_status_text"
-            android:textSize="@dimen/dj_status_text_size" />
+            android:textColor="@color/inspector_status_text"
+            android:textSize="@dimen/inspector_status_text_size" />
 
         <TextView
-            android:id="@+id/dj_action_status"
+            android:id="@+id/inspector_action_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:textColor="@color/dj_status_text"
-            android:textSize="@dimen/dj_status_text_size" />
+            android:textColor="@color/inspector_status_text"
+            android:textSize="@dimen/inspector_status_text_size" />
 
         <TextView
-            android:id="@+id/dj_deck_status"
+            android:id="@+id/inspector_hand_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:singleLine="true"
-            android:textColor="@color/dj_status_muted_text"
-            android:textSize="@dimen/dj_status_text_size" />
-
-        <TextView
-            android:id="@+id/dj_crossfader_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:textColor="@color/dj_status_muted_text"
-            android:textSize="@dimen/dj_status_text_size" />
+            android:maxLines="12"
+            android:textColor="@color/inspector_status_muted_text"
+            android:textSize="@dimen/inspector_status_text_size" />
     </LinearLayout>
 
     <include
@@ -98,7 +85,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:layout_marginTop="@dimen/dj_results_top_margin"
+        android:layout_marginTop="@dimen/inspector_results_top_margin"
         android:layout_marginBottom="@dimen/bottom_sheet_peek_height"
         android:background="@color/bottom_sheet_background"
         android:clipToPadding="true"

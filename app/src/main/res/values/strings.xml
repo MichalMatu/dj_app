@@ -15,7 +15,7 @@
     ~ limitations under the License.
 -->
 <resources>
-    <string name="app_name">DJ Gesture Deck</string>
+    <string name="app_name">Gesture Inspector</string>
 
     <string name="media_pipe">MediaPipe</string>
 
@@ -45,10 +45,9 @@
     <string name="label_hand_presence_confidence_threshold">Presence
         Threshold</string>
     <string name="label_delegate">Delegate</string>
-    <string name="label_dj_status">DJ Gesture Control</string>
-    <string name="label_dj_gesture">Gesture</string>
-    <string name="label_dj_action">Action</string>
-    <string name="label_dj_idle">Idle</string>
+    <string name="label_inspector_status">Gesture Inspector</string>
+    <string name="label_matched_action">Matched Action</string>
+    <string name="label_inspector_idle">Idle</string>
 
     <string-array name="delegate_spinner_titles">
         <item>CPU</item>

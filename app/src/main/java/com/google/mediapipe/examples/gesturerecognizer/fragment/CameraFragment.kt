@@ -34,11 +34,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.mediapipe.examples.gesturerecognizer.GestureRecognizerHelper
 import com.google.mediapipe.examples.gesturerecognizer.MainViewModel
 import com.google.mediapipe.examples.gesturerecognizer.R
+import com.google.mediapipe.examples.gesturerecognizer.control.GestureController
 import com.google.mediapipe.examples.gesturerecognizer.databinding.FragmentCameraBinding
-import com.google.mediapipe.examples.gesturerecognizer.dj.AndroidSystemAudioEngine
-import com.google.mediapipe.examples.gesturerecognizer.dj.DjControllerSnapshot
-import com.google.mediapipe.examples.gesturerecognizer.dj.DjGestureController
-import com.google.mediapipe.examples.gesturerecognizer.dj.GestureFrame
+import com.google.mediapipe.examples.gesturerecognizer.gesture.GestureFrameSet
+import com.google.mediapipe.examples.gesturerecognizer.gesture.GestureInspectorFormatter
+import com.google.mediapipe.examples.gesturerecognizer.gesture.GestureInspectorSnapshot
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -58,7 +58,7 @@ class CameraFragment : Fragment(),
         get() = _fragmentCameraBinding!!
 
     private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
-    private lateinit var djGestureController: DjGestureController
+    private lateinit var gestureController: GestureController
     private val viewModel: MainViewModel by activityViewModels()
     private var defaultNumResults = 1
     private val gestureRecognizerResultAdapter: GestureRecognizerResultsAdapter by lazy {
@@ -132,12 +132,7 @@ class CameraFragment : Fragment(),
     @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        djGestureController = DjGestureController(
-            audioEngine = AndroidSystemAudioEngine(
-                context = requireContext(),
-                adjustSystemVolume = false,
-            )
-        )
+        gestureController = GestureController()
 
         with(fragmentCameraBinding.recyclerviewResults) {
             layoutManager = LinearLayoutManager(requireContext())
@@ -169,17 +164,9 @@ class CameraFragment : Fragment(),
 
         // Attach listeners to UI control widgets
         initBottomSheetControls()
-        updateDjStatus(
-            djGestureController.handle(
-                GestureFrame(
-                    name = GestureFrame.NONE,
-                    score = 0f,
-                    timestampMs = 0L,
-                    handCount = 0,
-                    centerX = null,
-                    centerY = null,
-                )
-            )
+        updateInspectorStatus(
+            snapshot = gestureController.handle(GestureFrameSet.empty()),
+            inferenceTimeMs = 0L,
         )
     }
 
@@ -399,10 +386,11 @@ class CameraFragment : Fragment(),
                 fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text =
                     String.format("%d ms", resultBundle.inferenceTime)
 
-                updateDjStatus(
-                    djGestureController.handle(
-                        GestureFrame.fromResult(recognizerResult)
-                    )
+                updateInspectorStatus(
+                    snapshot = gestureController.handle(
+                        GestureFrameSet.fromResult(recognizerResult)
+                    ),
+                    inferenceTimeMs = resultBundle.inferenceTime,
                 )
 
                 // Pass necessary information to OverlayView for drawing on the canvas
@@ -419,40 +407,18 @@ class CameraFragment : Fragment(),
         }
     }
 
-    private fun updateDjStatus(snapshot: DjControllerSnapshot) {
-        val gestureLabel =
-            if (snapshot.gesture.name == GestureFrame.NONE) {
-                getString(R.string.label_dj_idle)
-            } else {
-                String.format(
-                    Locale.US,
-                    "%s %.0f%%",
-                    snapshot.gesture.displayName,
-                    snapshot.gesture.score * 100f
-                )
-            }
+    private fun updateInspectorStatus(
+        snapshot: GestureInspectorSnapshot,
+        inferenceTimeMs: Long,
+    ) {
+        val display = GestureInspectorFormatter.format(
+            snapshot = snapshot,
+            inferenceTimeMs = inferenceTimeMs,
+        )
 
-        val actionLabel = snapshot.lastAction?.let {
-            "${it.label} - ${it.detail}"
-        } ?: getString(R.string.label_dj_idle)
-
-        val playState = if (snapshot.deckA.isPlaying) "PLAY" else "PAUSE"
-        val cueState = if (snapshot.deckA.cueEnabled) "Cue ON" else "Cue OFF"
-        val fxState = if (snapshot.deckA.fxEnabled) "FX ON" else "FX OFF"
-        val zoneLabel = listOfNotNull(
-            snapshot.interaction.horizontalZone?.name,
-            snapshot.interaction.verticalZone?.name,
-        ).joinToString("/")
-            .ifEmpty { "-" }
-
-        fragmentCameraBinding.djGestureStatus.text =
-            "${getString(R.string.label_dj_gesture)}: $gestureLabel"
-        fragmentCameraBinding.djActionStatus.text =
-            "${getString(R.string.label_dj_action)}: $actionLabel"
-        fragmentCameraBinding.djDeckStatus.text =
-            "Deck A: $playState | Vol ${snapshot.deckA.volume}% | Filter ${snapshot.deckA.filter}% | $cueState | $fxState ${snapshot.deckA.fxMix}%"
-        fragmentCameraBinding.djCrossfaderStatus.text =
-            "Crossfader: ${snapshot.crossfader}% | Hold ${snapshot.interaction.holdDurationMs}ms | $zoneLabel | ${snapshot.interaction.movementDirection.name}"
+        fragmentCameraBinding.inspectorSummaryStatus.text = display.summary
+        fragmentCameraBinding.inspectorActionStatus.text = display.matchedAction
+        fragmentCameraBinding.inspectorHandStatus.text = display.handDetails
     }
 
     override fun onError(error: String, errorCode: Int) {
