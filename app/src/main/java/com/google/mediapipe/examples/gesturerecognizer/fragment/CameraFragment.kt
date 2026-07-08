@@ -133,7 +133,10 @@ class CameraFragment : Fragment(),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         djGestureController = DjGestureController(
-            audioEngine = AndroidSystemAudioEngine(requireContext())
+            audioEngine = AndroidSystemAudioEngine(
+                context = requireContext(),
+                adjustSystemVolume = false,
+            )
         )
 
         with(fragmentCameraBinding.recyclerviewResults) {

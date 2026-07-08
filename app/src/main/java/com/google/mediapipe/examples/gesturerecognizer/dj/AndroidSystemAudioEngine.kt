@@ -5,16 +5,20 @@ import android.media.AudioManager
 
 class AndroidSystemAudioEngine(
     context: Context,
+    private val adjustSystemVolume: Boolean = false,
     private val delegate: DjAudioEngine = PreviewDjAudioEngine(),
 ) : DjAudioEngine {
-    private val audioManager =
-        context.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val appContext = context.applicationContext
+    private val audioManager: AudioManager by lazy {
+        appContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    }
 
     override fun apply(
         commandEvent: DjCommandEvent,
         currentState: DjEngineState,
     ): DjEngineResult {
         val result = delegate.apply(commandEvent, currentState)
+        if (!adjustSystemVolume) return result
 
         return when (commandEvent.command) {
             DjCommand.VolumeUpDeckA -> result.withSystemVolume(

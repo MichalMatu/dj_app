@@ -32,6 +32,7 @@ data class GestureInteraction(
     val horizontalZone: HorizontalZone?,
     val verticalZone: VerticalZone?,
     val movementDirection: MovementDirection,
+    val hasMovedDuringHold: Boolean,
 ) {
     val isStable: Boolean
         get() = stableFrames > 0
@@ -40,12 +41,14 @@ data class GestureInteraction(
 class GestureInteractionEngine(
     private val minTrackedScore: Float = 0.60f,
     private val movementDeadZone: Float = 0.035f,
+    private val smoothingAlpha: Float = 0.25f,
 ) {
     private var activeGestureName: String? = null
     private var stableFrames = 0
     private var holdStartedAtMs = 0L
-    private var previousCenterX: Float? = null
-    private var previousCenterY: Float? = null
+    private var smoothedCenterX: Float? = null
+    private var smoothedCenterY: Float? = null
+    private var hasMovedDuringHold = false
 
     fun update(frame: GestureFrame): GestureInteraction {
         val trackedFrame =
@@ -63,6 +66,7 @@ class GestureInteractionEngine(
                 deltaX = 0f,
                 deltaY = 0f,
                 movementDirection = MovementDirection.Still,
+                hasMovedDuringHold = false,
             )
         }
 
@@ -71,8 +75,9 @@ class GestureInteractionEngine(
             activeGestureName = trackedFrame.name
             stableFrames = 1
             holdStartedAtMs = trackedFrame.timestampMs
-            previousCenterX = trackedFrame.centerX
-            previousCenterY = trackedFrame.centerY
+            smoothedCenterX = trackedFrame.centerX
+            smoothedCenterY = trackedFrame.centerY
+            hasMovedDuringHold = false
 
             return trackedFrame.toInteraction(
                 stableFrames = stableFrames,
@@ -80,22 +85,35 @@ class GestureInteractionEngine(
                 deltaX = 0f,
                 deltaY = 0f,
                 movementDirection = MovementDirection.Still,
+                hasMovedDuringHold = hasMovedDuringHold,
             )
         }
 
         stableFrames += 1
 
-        val deltaX = delta(trackedFrame.centerX, previousCenterX)
-        val deltaY = delta(trackedFrame.centerY, previousCenterY)
-        previousCenterX = trackedFrame.centerX
-        previousCenterY = trackedFrame.centerY
+        val (nextSmoothedCenterX, deltaX) = smoothedDelta(
+            current = trackedFrame.centerX,
+            previous = smoothedCenterX,
+        )
+        val (nextSmoothedCenterY, deltaY) = smoothedDelta(
+            current = trackedFrame.centerY,
+            previous = smoothedCenterY,
+        )
+        smoothedCenterX = nextSmoothedCenterX
+        smoothedCenterY = nextSmoothedCenterY
+
+        val movementDirection = movementDirection(deltaX, deltaY)
+        if (movementDirection != MovementDirection.Still) {
+            hasMovedDuringHold = true
+        }
 
         return trackedFrame.toInteraction(
             stableFrames = stableFrames,
             holdDurationMs = trackedFrame.timestampMs - holdStartedAtMs,
             deltaX = deltaX,
             deltaY = deltaY,
-            movementDirection = movementDirection(deltaX, deltaY),
+            movementDirection = movementDirection,
+            hasMovedDuringHold = hasMovedDuringHold,
         )
     }
 
@@ -103,12 +121,17 @@ class GestureInteractionEngine(
         activeGestureName = null
         stableFrames = 0
         holdStartedAtMs = 0L
-        previousCenterX = null
-        previousCenterY = null
+        smoothedCenterX = null
+        smoothedCenterY = null
+        hasMovedDuringHold = false
     }
 
-    private fun delta(current: Float?, previous: Float?): Float {
-        return if (current == null || previous == null) 0f else current - previous
+    private fun smoothedDelta(current: Float?, previous: Float?): Pair<Float?, Float> {
+        if (current == null) return null to 0f
+        if (previous == null) return current to 0f
+
+        val smoothed = previous + (current - previous) * smoothingAlpha
+        return smoothed to (smoothed - previous)
     }
 
     private fun movementDirection(deltaX: Float, deltaY: Float): MovementDirection {
@@ -131,6 +154,7 @@ class GestureInteractionEngine(
         deltaX: Float,
         deltaY: Float,
         movementDirection: MovementDirection,
+        hasMovedDuringHold: Boolean,
     ): GestureInteraction = GestureInteraction(
         frame = this,
         stableFrames = stableFrames,
@@ -140,6 +164,7 @@ class GestureInteractionEngine(
         horizontalZone = centerX?.toHorizontalZone(),
         verticalZone = centerY?.toVerticalZone(),
         movementDirection = movementDirection,
+        hasMovedDuringHold = hasMovedDuringHold,
     )
 
     private fun Float.toHorizontalZone(): HorizontalZone = when {

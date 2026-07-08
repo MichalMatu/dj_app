@@ -26,13 +26,10 @@ class DjGestureMapper(
             consumedOnceBindings.clear()
         }
 
-        val commandEvent = bindings.firstNotNullOfOrNull { binding ->
-            if (binding.matches(interaction)) {
-                binding.nextEvent(interaction)
-            } else {
-                null
-            }
-        }
+        val commandEvent = bindings
+            .filter { binding -> binding.matches(interaction) }
+            .sortedByDescending { binding -> binding.priority }
+            .firstNotNullOfOrNull { binding -> binding.nextEvent(interaction) }
 
         return DjGestureMapperResult(interaction, commandEvent)
     }
@@ -50,8 +47,10 @@ class DjGestureMapper(
         if (interaction.stableFrames < stableFramesRequired) return false
         if (interaction.frame.score < minScore) return false
         if (interaction.holdDurationMs < minHoldMs) return false
+        if (maxHoldMs != null && interaction.holdDurationMs > maxHoldMs) return false
         if (horizontalZones != null && interaction.horizontalZone !in horizontalZones) return false
         if (verticalZones != null && interaction.verticalZone !in verticalZones) return false
+        if (requireNoMovementDuringHold && interaction.hasMovedDuringHold) return false
         if (movement != null && !movement.matches(interaction.movementDirection)) return false
         return true
     }

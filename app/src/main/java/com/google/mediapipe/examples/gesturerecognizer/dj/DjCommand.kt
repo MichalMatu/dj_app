@@ -29,9 +29,12 @@ data class DjGestureBinding(
     val triggerMode: DjTriggerMode,
     val minScore: Float = 0.60f,
     val minHoldMs: Long = 0L,
+    val maxHoldMs: Long? = null,
     val horizontalZones: Set<HorizontalZone>? = null,
     val verticalZones: Set<VerticalZone>? = null,
     val movement: MovementDirection? = null,
+    val requireNoMovementDuringHold: Boolean = false,
+    val priority: Int = 0,
     val repeatIntervalMs: Long = 300L,
     val cooldownMs: Long = 500L,
 )

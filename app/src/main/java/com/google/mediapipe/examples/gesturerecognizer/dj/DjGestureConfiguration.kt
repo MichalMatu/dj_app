@@ -9,6 +9,7 @@ object DjGestureConfiguration {
             triggerMode = DjTriggerMode.OncePerHold,
             movement = MovementDirection.Still,
             minHoldMs = 150L,
+            requireNoMovementDuringHold = true,
         ),
         DjGestureBinding(
             id = "closed-fist-cue",
@@ -72,6 +73,7 @@ object DjGestureConfiguration {
             triggerMode = DjTriggerMode.OncePerHold,
             movement = MovementDirection.Still,
             minHoldMs = 150L,
+            requireNoMovementDuringHold = true,
         ),
         DjGestureBinding(
             id = "victory-fx-mix-up",
@@ -96,12 +98,17 @@ object DjGestureConfiguration {
             triggerMode = DjTriggerMode.OncePerHold,
             verticalZones = setOf(VerticalZone.Bottom),
             minHoldMs = 900L,
+            priority = 20,
         ),
         DjGestureBinding(
             id = "i-love-you-fx-toggle",
             gestureName = "ILoveYou",
             command = DjCommand.ToggleFxDeckA,
             triggerMode = DjTriggerMode.OncePerHold,
+            verticalZones = setOf(VerticalZone.Top, VerticalZone.Middle),
+            minHoldMs = 150L,
+            maxHoldMs = 650L,
+            priority = 10,
         ),
     )
 }
