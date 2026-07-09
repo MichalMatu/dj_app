@@ -145,9 +145,25 @@ Equivalent Gradle task:
 ```
 
 This runs whitespace checks, Spotless/ktlint formatting checks, detekt static
-analysis, unit tests, Android Lint, and debug assembly.
+analysis, Kover coverage verification, unit tests, Android Lint, and debug
+assembly.
 
 The GitHub Actions workflow runs the same `./gradlew qualityCheck` gate.
+
+Coverage is measured for the neutral gesture core and DJ demo adapter packages.
+Generate an HTML coverage report with:
+
+```bash
+./gradlew :app:koverHtmlReportDebug
+```
+
+Check available dependency updates without making it part of the blocking gate:
+
+```bash
+./gradlew dependencyUpdates -Drevision=release
+```
+
+Dependabot checks Gradle and GitHub Actions updates weekly.
 
 ## Git Hooks
 

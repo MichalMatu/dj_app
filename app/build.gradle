@@ -19,6 +19,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'de.undercouch.download'
     id 'io.gitlab.arturbosch.detekt'
+    id 'org.jetbrains.kotlinx.kover'
 }
 
 android {
@@ -71,6 +72,27 @@ tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
         xml.required.set(false)
         txt.required.set(true)
         sarif.required.set(true)
+    }
+}
+
+kover {
+    reports {
+        filters {
+            includes {
+                classes(
+                    'com.google.mediapipe.examples.gesturerecognizer.control.*',
+                    'com.google.mediapipe.examples.gesturerecognizer.gesture.*',
+                    'com.google.mediapipe.examples.gesturerecognizer.demo.dj.*'
+                )
+            }
+        }
+        variant('debug') {
+            verify {
+                rule {
+                    minBound(70)
+                }
+            }
+        }
     }
 }
 

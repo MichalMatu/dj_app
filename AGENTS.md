@@ -43,6 +43,8 @@ References checked:
 - GitHub Actions should use the same `./gradlew qualityCheck` gate as local verification.
 - Spotless with ktlint is the formatting gate. Use `./gradlew spotlessApply` only for mechanical formatting changes.
 - detekt is the Kotlin static analysis gate. Prefer fixing findings over adding suppressions or baselines.
+- Kover verifies debug coverage for the neutral gesture core and DJ demo adapter packages. Keep the threshold meaningful; do not lower it to hide missing tests.
+- Use `./gradlew dependencyUpdates -Drevision=release` for dependency hygiene checks. Do not add it to pre-push because it is network-dependent.
 - Android Lint is part of the quality gate through `./gradlew :app:lintDebug`.
 - After Android UI, resource, manifest, or Gradle changes, run `./gradlew :app:assembleDebug`.
 - Always run `git diff --check` before considering the work ready.
