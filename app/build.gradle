@@ -1,0 +1,136 @@
+/*
+ * Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *             http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'de.undercouch.download'
+    id 'io.gitlab.arturbosch.detekt'
+    id 'org.jetbrains.kotlinx.kover'
+}
+
+android {
+    namespace 'com.google.mediapipe.examples.gesturerecognizer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.google.mediapipe.examples.gesturerecognizer"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    lint {
+        abortOnError true
+        warningsAsErrors true
+        checkDependencies true
+        htmlReport true
+        lintConfig file('lint.xml')
+        textReport true
+    }
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$rootDir/config/detekt/detekt.yml")
+}
+
+tasks.withType(io.gitlab.arturbosch.detekt.Detekt).configureEach {
+    reports {
+        html.required.set(true)
+        xml.required.set(false)
+        txt.required.set(true)
+        sarif.required.set(true)
+    }
+}
+
+kover {
+    reports {
+        filters {
+            includes {
+                classes(
+                    'com.google.mediapipe.examples.gesturerecognizer.control.*',
+                    'com.google.mediapipe.examples.gesturerecognizer.gesture.*',
+                    'com.google.mediapipe.examples.gesturerecognizer.demo.dj.*'
+                )
+            }
+        }
+        variant('debug') {
+            verify {
+                rule {
+                    minBound(70)
+                }
+            }
+        }
+    }
+}
+
+// import DownloadMPTasks task
+project.ext.ASSET_DIR = projectDir.toString() + '/src/main/assets'
+
+apply from: 'download_tasks.gradle'
+
+dependencies {
+
+    // Kotlin lang
+    implementation 'androidx.core:core-ktx:1.8.0'
+
+    // App compat and UI things
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'androidx.fragment:fragment-ktx:1.5.4'
+
+    // Navigation library
+    def nav_version = "2.5.3"
+    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+
+    // CameraX core library
+    def camerax_version = '1.4.2'
+    implementation "androidx.camera:camera-core:$camerax_version"
+
+    // CameraX Camera2 extensions
+    implementation "androidx.camera:camera-camera2:$camerax_version"
+
+    // CameraX Lifecycle library
+    implementation "androidx.camera:camera-lifecycle:$camerax_version"
+
+    // CameraX View class
+    implementation "androidx.camera:camera-view:$camerax_version"
+
+    // Unit testing
+    testImplementation 'junit:junit:4.13.2'
+
+    // Mediapipe Library
+    implementation 'com.google.mediapipe:tasks-vision:0.10.29'
+}
