@@ -104,7 +104,7 @@ apply from: 'download_tasks.gradle'
 dependencies {
 
     // Kotlin lang
-    implementation 'androidx.core:core-ktx:1.8.0'
+    implementation 'androidx.core:core-ktx:1.19.0'
 
     // App compat and UI things
     implementation 'androidx.appcompat:appcompat:1.5.1'
